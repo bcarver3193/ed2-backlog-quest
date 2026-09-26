@@ -1,0 +1,17 @@
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+.vite/
+.netlify/
+
+# Local environment variables; keep a shareable example
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs and operating system files
+*.log
+.DS_Store
+Thumbs.db
