@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { Swords } from 'lucide-react'
 import App from './App'
 import AuthForm from './components/AuthForm'
+import Progress, { Spinner } from './components/Progress'
 import { supabase, errorMessage } from './supabase'
 
 // Capture callback state before the client removes tokens from the address bar.
@@ -20,6 +21,7 @@ export default function AccountApp() {
   const [demo, setDemo] = useState(false)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     if (!supabase) return
@@ -50,15 +52,16 @@ export default function AccountApp() {
     window.history.replaceState({}, '', window.location.pathname)
   }
 
-  if (!ready) return <main className="auth-shell"><p role="status">Opening your account…</p></main>
+  if (!ready) return <main className="auth-shell"><Progress>Opening your account…</Progress></main>
   if (session && !recovery) return <App key={session.user.id} user={session.user} onSignOut={signOut} notice={notice} />
   if (demo && !session) return <App key="demo" onExitDemo={() => setDemo(false)} />
   return <main className="auth-shell">
     <div className="auth-story"><a className="brand" href="/"><span className="brand-icon"><Swords size={24} /></span><span>backlog<span className="brand-light">quest</span><small>ONE ADVENTURE AT A TIME</small></span></a><div><span className="eyebrow">LESS SCROLLING. MORE PLAYING.</span><h2>Good games.<br />Your pace.</h2><p>A home for your collection, a place for your next adventure. Save your progress and come back whenever you’re ready.</p></div><span className="auth-caption">Your library. Your next quest.</span></div>
     <div className="auth-panel">
       {!supabase && <p className="error" role="alert">Account access is not configured. Add the Supabase URL and publishable key to enable it. You can still explore the demo.</p>}
-      <AuthForm onBusyChange={setBusy} key={session && recovery ? 'recovery' : 'signin'} passwordOnly={!!session && recovery} initialError={error || (recovery && !session ? 'Open a valid password reset link from your email, or request a new one.' : '')} onDone={() => { setRecovery(false); setNotice('Your password has been updated.'); window.history.replaceState({}, '', window.location.pathname) }} />
-      {session ? <button disabled={busy} className="text-button" onClick={() => { void signOut().catch(error => setError(errorMessage(error))) }}>Cancel and sign out</button> : <button className="text-button demo-link" onClick={() => setDemo(true)}>Explore the local demo <span>Try it without an account</span></button>}
+      <AuthForm disabled={signingOut} onBusyChange={setBusy} key={session && recovery ? 'recovery' : 'signin'} passwordOnly={!!session && recovery} initialError={error || (recovery && !session ? 'Open a valid password reset link from your email, or request a new one.' : '')} onDone={() => { setRecovery(false); setNotice('Your password has been updated.'); window.history.replaceState({}, '', window.location.pathname) }} />
+      {session ? <button disabled={busy || signingOut} className="text-button" onClick={() => { setSigningOut(true); setError(''); void signOut().catch(error => setError(`Could not sign out. ${errorMessage(error)} Try again.`)).finally(() => setSigningOut(false)) }}>{signingOut && <Spinner />}{signingOut ? 'Signing out…' : 'Cancel and sign out'}</button> : <button disabled={busy} className="text-button demo-link" onClick={() => setDemo(true)}>Explore the local demo <span>Try it without an account</span></button>}
+      {signingOut && <Progress>Signing out…</Progress>}
       {session && error && <p role="alert" className="error">{error}</p>}
     </div>
   </main>
