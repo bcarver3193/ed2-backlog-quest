@@ -9,7 +9,7 @@ export default function Modal({ title, children, onClose }: { title: string; chi
     dialog.showModal()
     return () => dialog.close()
   }, [])
-  return <dialog ref={ref} onCancel={onClose} aria-labelledby="dialog-title">
+  return <dialog ref={ref} onCancel={event => { event.preventDefault(); onClose() }} aria-labelledby="dialog-title">
     <div className="dialog-heading"><h2 id="dialog-title">{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={20} /></button></div>
     {children}
   </dialog>
