@@ -1,106 +1,136 @@
 # Backlog Quest
 
-A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The first frontend is built with Vite, React, and TypeScript. It supports Supabase accounts and private cloud libraries, plus a separate local demo. See [database setup](supabase/README.md) for connection details and verification results.
+Backlog Quest is a completed, deployed web application for organizing your video game collection and deciding what to play next. Track your progress, rate games, save notes, and let the random backlog picker choose your next adventure.
 
-The complete requirements are in [spec_doc.md](spec_doc.md).
+**Live app:** [backlog-quest.netlify.app](https://backlog-quest.netlify.app/)
 
-## Stack
+## Features
 
-- React, Vite, TypeScript, HTML, and CSS for the responsive interface.
-- Supabase for persistent cloud database storage.
-- Git and GitHub for version control.
-- Netlify for public deployment.
+- **Manage your library:** Add, view, edit, and delete games, with confirmation before deletion.
+- **Track progress:** Organize games as Backlog, Playing, Completed, or Dropped, with counts for each status.
+- **Save game details:** Record a title, platform, optional integer rating from 1–10, and notes.
+- **Find games:** Search titles, filter by status, and toggle alphabetical sorting.
+- **Pick your next game:** Randomly select from your entire backlog, regardless of active filters, and move the selected game to Playing.
+- **Keep a private cloud library:** Create an account or sign in with email and password to save your collection across sessions and devices. Account features include confirmation resend, password recovery, password changes, and sign-out.
+- **Try a local demo:** Explore six sample games without an account. Demo changes persist in the current browser and are separate from account data; they are not automatically imported into a cloud library.
+- **Use desktop or mobile:** Responsive layouts, keyboard-accessible dialogs, loading feedback, validation, and retry messages support everyday use.
 
-## Run the frontend
+## Getting started
 
-Use Node.js 22.12+ (or a newer supported version).
+Visit the [live app](https://backlog-quest.netlify.app/) and create an account, sign in, or try the local demo. Add a game, choose its status, and optionally enter a platform, rating, and notes. Use the library filters to track progress or **Pick my next game** when you need help choosing what to play.
+
+## Technologies
+
+| Technology | Purpose |
+| --- | --- |
+| React and TypeScript | Component-based interface and typed application logic |
+| Vite | Local development server and production builds |
+| HTML and CSS | Responsive layouts, styling, and reduced-motion support |
+| Lucide React | Interface icons |
+| Supabase Auth and PostgreSQL | Email/password accounts and persistent game storage |
+| Supabase row level security | Restrict game access to the owning account |
+| Browser localStorage | Persistence for the separate local demo |
+| Vitest and React Testing Library | Automated application tests |
+| Git and GitHub | Version control |
+| Netlify | Public website hosting |
+
+## Local setup
+
+### Prerequisites
+
+- Node.js 22.12 or later in a supported release line, with npm.
+- A local copy of this repository.
+- A Supabase project for account and cloud-library features. The local demo works without Supabase configuration.
+
+### Install and run
+
+From the project directory:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Use `npm run build` to type-check and produce the production build, `npm run typecheck` for TypeScript checks, and `npm run preview` to preview the build.
+Open the local URL printed by Vite (normally `http://localhost:5173/`). Without Supabase configuration, use the local demo.
 
-### Frontend and accounts
+### Enable accounts and cloud storage
 
-- Responsive library with status counts, title search, status filters, and optional alphabetical ordering.
-- Add/edit forms with title and integer rating validation; notes and flexible platforms.
-- Confirmed deletion and a random picker that draws from the entire backlog, regardless of active filters.
-- Six sample games on first visit. Changes persist in this browser under `backlog-quest:demo:v1`, including an intentionally empty collection.
-- Native modal dialogs provide keyboard focus containment and Escape dismissal.
+1. On a new Supabase project, apply the SQL files in `supabase/migrations/` in filename order: first `20260927043418_create_games.sql`, then `20260927044409_protect_games_with_auth.sql`. See the [database documentation](supabase/README.md) for schema, ownership policies, and database checks.
+2. Copy the environment template:
 
-- Email/password sign-up and sign-in, confirmation resend, password recovery, password changes, and sign-out on this device.
-- Session restoration and token refresh through the Supabase client; account changes clear the previous library.
-- Private cloud add/edit/delete and random-picker status updates. Failed writes retain the form and show an error; failed reads offer a retry.
-- “Start playing” updates only the selected game's status, preserving other fields edited on another device. The library updates after database confirmation, and repeated clicks are disabled while saving.
-- Loading and saving show accessible progress messages and spinners that respect reduced-motion preferences. Pending actions disable conflicting controls and dialog dismissal; failed requests preserve form entries and explain how to retry.
-- Demo data stays on this device and is never automatically imported into a private account.
+   ```sh
+   cp .env.example .env.local
+   ```
 
-### Account configuration
+3. Set these values in `.env.local` using your project's URL and publishable key:
 
-Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. The existing local environment is already configured. Use only a publishable key; never expose a secret or service-role key.
+   ```dotenv
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+   ```
 
-In Supabase **Authentication → URL Configuration**, set the Site URL to the deployed app origin and allow the exact development/deployment return URLs. For the default Vite server these are `http://localhost:5173/` and `http://localhost:5173/?flow=recovery`. If using `127.0.0.1` or another port, add those exact URLs too. The app builds email return URLs from the current origin and path; password recovery adds `?flow=recovery`. The recovery marker survives a reload until the password is saved or the user signs out.
+   Use a publishable key, never a secret or service-role key. Vite exposes these values to the browser. Keep `.env.local` out of version control.
 
-Enable the email provider and email confirmation in Supabase. Use working SMTP for production delivery; provider limits and Supabase password requirements still apply. The UI requires at least 8 characters for new passwords. Missing frontend configuration shows an explanation and leaves the demo available.
+4. Enable email/password authentication and email confirmation in Supabase. Configure email delivery for confirmation and password recovery.
+5. In **Authentication → URL Configuration**, set the Site URL to your app's origin and allow its sign-in and recovery return URLs. For this deployment and the default local server, these are:
 
-### Verification
+   ```text
+   https://backlog-quest.netlify.app/
+   https://backlog-quest.netlify.app/?flow=recovery
+   http://localhost:5173/
+   http://localhost:5173/?flow=recovery
+   ```
 
-`npm test` runs account, collection, feedback, and database-request tests. The database-request tests use the real Supabase query builder with a mocked HTTP transport to verify ownership filters, saved fields, status-only updates, confirmed deletions, and error propagation. UI tests cover registration confirmation, sign-in errors, recovery, duplicate submissions, account switching, logout, delayed responses, demo isolation, edit/reload behavior, and read/write failure recovery (including “Start playing”). Delayed-request tests verify loading states, locked dialogs, duplicate-submit prevention, all-field preservation after failed saves, and non-overlapping account actions. `npm run build` checks TypeScript and builds production assets.
+   If you use another hostname or port, add its corresponding return URLs.
+6. Restart the development server after changing environment values.
 
-The database authorization test in `supabase/tests/games_auth.sql` was rerun successfully, and security advisors returned no findings. The sign-in and sign-up screens were inspected in the local browser. Real email delivery and the full email-link round trip have not been verified; finish these checks after configuring the deployed return URLs:
+## Deployment
 
-1. Register with an inbox you control, confirm the email, and sign in.
-2. Add/edit a game, refresh, and confirm it persists. Sign out and sign back in.
-3. Request password recovery, open the email link, set a new password, then sign in with it.
-4. Check expired links and resend confirmation. Verify a second account has an independent library.
-5. Test the deployed app on desktop and mobile.
+The completed app is hosted on [Netlify](https://backlog-quest.netlify.app/). To build and deploy your own copy, use:
 
-### Frontend structure
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Environment variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` |
 
-- `src/AccountApp.tsx`: session lifecycle and recovery routing.
-- `src/components/AuthForm.tsx`: account forms and validation.
-- `src/supabase.ts` and `src/cloudGames.ts`: browser client and owner-scoped cloud operations.
-- `src/App.tsx`: library layout, filtering, picker, and collection interactions.
-- `src/games.ts`: typed game model, sample data, and local demo storage.
-- `src/components/`: reusable dialog and game form.
-- `src/styles.css`: responsive styles and reduced-motion support.
+Set the environment variables before building, then configure Supabase's Site URL and allowed return URLs for your deployment. Rebuild after changing Vite environment values because they are included in the production bundle at build time.
 
-## Required functionality
+## Development and verification
 
-- Add, view, edit, and delete games, with confirmation before deletion.
-- Track each game as Backlog, Playing, Completed, or Dropped.
-- Store a required title and status, plus optional platform, integer rating from 1–10, and notes.
-- Search titles case-insensitively and filter by status.
-- Randomly select a game from all Backlog entries, with a clear message when none exist.
-- Persist changes across browser sessions.
-- Provide responsive desktop/mobile layouts, validation, understandable errors, and empty states.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run typecheck` | Check TypeScript types |
+| `npm test` | Run the automated test suite |
+| `npm run build` | Type-check and build production assets in `dist/` |
+| `npm run preview` | Preview an existing production build locally |
 
-The `games` table will contain `id` (UUID), `title`, `platform`, `status`, `rating`, `notes`, `created_at`, and `updated_at`.
+Automated tests cover account flows, collection interactions, demo isolation, validation, loading states, failed requests, and owner-scoped database requests. Application tests use mocked service responses; SQL checks in `supabase/tests/` separately exercise database constraints and account ownership policies.
 
-## Scope boundaries
+For deployment verification, check registration and email confirmation, sign-in, game creation and persistence after refresh, editing, search and filtering, random selection, deletion, password recovery, and separate libraries for two accounts. Check the interface on desktop and mobile. Real email delivery and email-link round trips require manual verification with an inbox.
 
-Per the September 27 scope update, Supabase authentication is required. Each account has a private collection; users cannot view or change another account's games. Platform filtering, cover images, external game APIs, sorting, statistics, themes, and drag-and-drop remain optional. Social features, store features, account integrations, achievement tracking, and complex recommendations are out of scope.
+## Project structure
 
-## Decisions to resolve during implementation
+```text
+src/
+  AccountApp.tsx       Session lifecycle and password recovery
+  App.tsx              Library interface, filters, and random picker
+  cloudGames.ts        Account-scoped database operations
+  games.ts             Game types, sample data, and local demo storage
+  supabase.ts          Supabase browser client
+  components/          Account forms, game forms, dialogs, and progress feedback
+  styles.css           Responsive application styles
+supabase/
+  migrations/          Database schema and ownership policies
+  tests/               SQL constraint and authorization checks
+tests/                 Automated application tests
+```
 
-- Deployment: configure Supabase email delivery and allow the final development/deployment return URLs.
-- Ratings: the spec primarily intends ratings for completed games but does not require restricting them to that status.
-- Data behavior: define duplicate-title handling, default ordering, timestamp maintenance, and field length limits. The spec does not prescribe these details.
+The [project specification](spec_doc.md) records the original requirements. The implemented app includes private accounts and alphabetical sorting in addition to the core backlog-management features.
 
-## Development sequence
+## Demo video
 
-1. Scaffold the React/Vite application and build the initial interface.
-2. Configure Supabase, database constraints, and access policies.
-3. Implement and verify persistent create, read, update, and delete operations.
-4. Add search, status filtering, and the random backlog picker.
-5. Complete validation, error handling, and responsive styling.
-6. Verify the full user flow, publish to Netlify, and document setup and deployment.
-7. Record the demonstration using the deployed application.
+Demo video link: **To be added.**
 
-Create the GitHub remote when ready to publish development history. No remote or deployment is configured yet.
-
-## Acceptance and demonstration
-
-Verify that a user can add a game, refresh and retain it, search and filter the collection, edit fields and status, save a rating and notes, delete with confirmation, and select a random Backlog game. Also verify invalid input, failed database operations, empty search results, and an empty backlog. Demonstrate the completed flow on Netlify and explain the project structure and database connection.
+The [live app](https://backlog-quest.netlify.app/) is available to explore in the meantime.
