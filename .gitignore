@@ -4,6 +4,8 @@ dist/
 coverage/
 .vite/
 .netlify/
+supabase/.temp/
+supabase/.branches/
 
 # Local environment variables; keep a shareable example
 .env
