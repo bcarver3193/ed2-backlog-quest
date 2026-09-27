@@ -4,6 +4,14 @@ import type { Game } from './games'
 const fields = 'id,title,platform,status,rating,notes'
 const normalize = (game: Game): Game => ({ ...game, platform: game.platform ?? '', notes: game.notes ?? '' })
 
+export async function startPlaying(id: string, userId: string): Promise<Game> {
+  // Only change status: another device may have edited the game's other fields.
+  const { data, error } = await supabase!.from('games').update({ status: 'Playing' })
+    .eq('id', id).eq('user_id', userId).select(fields).single()
+  if (error) throw error
+  return normalize(data as Game)
+}
+
 export async function fetchGames(userId: string): Promise<Game[]> {
   const { data, error } = await supabase!.from('games').select(fields).eq('user_id', userId).order('created_at', { ascending: false })
   if (error) throw error

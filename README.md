@@ -33,6 +33,7 @@ Open the local URL printed by Vite. Use `npm run build` to type-check and produc
 - Email/password sign-up and sign-in, confirmation resend, password recovery, password changes, and sign-out on this device.
 - Session restoration and token refresh through the Supabase client; account changes clear the previous library.
 - Private cloud add/edit/delete and random-picker status updates. Failed writes retain the form and show an error; failed reads offer a retry.
+- “Start playing” updates only the selected game's status, preserving other fields edited on another device. The library updates after database confirmation, and repeated clicks are disabled while saving.
 - Demo data stays on this device and is never automatically imported into a private account.
 
 ### Account configuration
@@ -45,7 +46,7 @@ Enable the email provider and email confirmation in Supabase. Use working SMTP f
 
 ### Verification
 
-`npm test` runs account and collection integration tests with mocked Auth/Data API responses. They cover registration confirmation, sign-in errors, recovery, duplicate submissions, account switching, logout, delayed responses, demo isolation, and read/write failure recovery. `npm run build` checks TypeScript and builds production assets.
+`npm test` runs account, collection, and database-request tests. The database-request tests use the real Supabase query builder with a mocked HTTP transport to verify ownership filters, saved fields, status-only updates, confirmed deletions, and error propagation. UI tests cover registration confirmation, sign-in errors, recovery, duplicate submissions, account switching, logout, delayed responses, demo isolation, edit/reload behavior, and read/write failure recovery (including “Start playing”). `npm run build` checks TypeScript and builds production assets.
 
 The database authorization test in `supabase/tests/games_auth.sql` was rerun successfully, and security advisors returned no findings. The sign-in and sign-up screens were inspected in the local browser. Real email delivery and the full email-link round trip have not been verified; finish these checks after configuring the deployed return URLs:
 

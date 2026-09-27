@@ -3,7 +3,7 @@ import { ArrowDownAZ, ArrowUpRight, Check, ChevronRight, CirclePause, Dice5, Gam
 import { loadGames, saveGames, statuses } from './games'
 import type { Game, Status } from './games'
 import type { User } from '@supabase/supabase-js'
-import { fetchGames, persistGame, removeGame } from './cloudGames'
+import { fetchGames, persistGame, removeGame, startPlaying } from './cloudGames'
 import { errorMessage } from './supabase'
 import AuthForm from './components/AuthForm'
 import Modal from './components/Modal'
@@ -50,11 +50,18 @@ export default function App({ user, onSignOut, onExitDemo, notice: accountNotice
 
   async function saveGame(game: Game, existing: boolean) {
     const saved = user ? await persistGame(game, user.id, existing) : game
+    acceptSavedGame(saved, existing)
+  }
+  function acceptSavedGame(saved: Game, existing: boolean) {
     if (!mounted.current) return
     const next = existing ? games.map(g => g.id === saved.id ? saved : g) : [saved, ...games]
     if (!user) saveGames(next)
     if (!user) setError('')
     setGames(next); setNotice(`${saved.title} saved.`); setModal(null)
+  }
+  async function playGame(game: Game) {
+    const saved = user ? await startPlaying(game.id, user.id) : { ...game, status: 'Playing' as const }
+    acceptSavedGame(saved, true)
   }
   async function runAction(action: () => Promise<void>) {
     if (saving.current) return
@@ -117,7 +124,7 @@ export default function App({ user, onSignOut, onExitDemo, notice: accountNotice
 
     {modal?.kind === 'form' && <Modal title={modal.game ? 'Edit game' : 'A new adventure'} onClose={() => { if (!busy) setModal(null) }}><GameForm onBusyChange={setBusy} game={modal.game} onCancel={() => setModal(null)} onSave={game => saveGame(game, !!modal.game)} /></Modal>}
     {modal?.kind === 'delete' && <Modal title="Remove this game?" onClose={() => { if (!busy) setModal(null) }}><p className="dialog-copy">Remove <strong>{modal.game.title}</strong> and its notes from your {user ? 'private' : 'demo'} library? This cannot be undone.</p>{actionError && <p className="error" role="alert">{actionError}</p>}<div className="dialog-actions"><button disabled={busy} className="secondary" onClick={() => setModal(null)}>Keep game</button><button disabled={busy} className="danger" onClick={() => void runAction(() => deleteGame(modal.game))}>{busy ? 'Removing…' : 'Remove game'}</button></div></Modal>}
-    {modal?.kind === 'pick' && <Modal title="Your next quest" onClose={() => { if (!busy) setModal(null) }}>{actionError && <p className="error" role="alert">{actionError}</p>}<div className="pick-result"><span className="pick-icon"><Dice5 size={36} /></span><div className="eyebrow">{modal.game ? 'THE DICE HAVE SPOKEN' : 'A CLEAN SLATE'}</div><h3>{modal.game?.title ?? 'Your backlog is empty'}</h3><p>{modal.game ? modal.game.platform || 'Your next adventure is ready.' : 'Add a game to your backlog to let fate choose your next adventure.'}</p></div><div className="dialog-actions">{modal.game ? <><button disabled={busy || loading || (!!user && !!error)} className="secondary" onClick={pickGame}><Dice5 size={16} />Roll again</button><button className="primary" disabled={busy || loading || !!error} onClick={() => void runAction(() => saveGame({ ...modal.game!, status: 'Playing' }, true))}><Check size={16} />Start playing</button></> : <button className="primary" onClick={() => setModal({ kind: 'form', game: null })}><Plus size={16} />Add game</button>}</div></Modal>}
+    {modal?.kind === 'pick' && <Modal title="Your next quest" onClose={() => { if (!busy) setModal(null) }}>{actionError && <p className="error" role="alert">{actionError}</p>}<div className="pick-result"><span className="pick-icon"><Dice5 size={36} /></span><div className="eyebrow">{modal.game ? 'THE DICE HAVE SPOKEN' : 'A CLEAN SLATE'}</div><h3>{modal.game?.title ?? 'Your backlog is empty'}</h3><p>{modal.game ? modal.game.platform || 'Your next adventure is ready.' : 'Add a game to your backlog to let fate choose your next adventure.'}</p></div><div className="dialog-actions">{modal.game ? <><button disabled={busy || loading || (!!user && !!error)} className="secondary" onClick={pickGame}><Dice5 size={16} />Roll again</button><button className="primary" disabled={busy || loading || !!error} onClick={() => void runAction(() => playGame(modal.game!))}><Check size={16} />{busy ? 'Saving…' : 'Start playing'}</button></> : <button className="primary" onClick={() => setModal({ kind: 'form', game: null })}><Plus size={16} />Add game</button>}</div></Modal>}
     {modal?.kind === 'account' && <Modal title="Your account" onClose={() => { if (!busy) setModal(null) }}><p className="dialog-copy account-email">Signed in as <strong>{user?.email}</strong></p><AuthForm onBusyChange={setBusy} passwordOnly onDone={() => { setModal(null); setNotice('Your password has been updated.') }} />{actionError && <p className="error" role="alert">{actionError}</p>}<div className="dialog-actions"><button disabled={busy} className="secondary" onClick={() => void runAction(() => onSignOut!())}>{busy ? 'Signing out…' : 'Sign out'}</button></div></Modal>}
   </div>
 }

@@ -9,10 +9,10 @@ import App from '../src/App'
 
 const mocks = vi.hoisted(() => ({
   auth: { signInWithPassword: vi.fn(), signUp: vi.fn(), resetPasswordForEmail: vi.fn(), resend: vi.fn(), updateUser: vi.fn(), signOut: vi.fn(), getSession: vi.fn(), onAuthStateChange: vi.fn() },
-  fetchGames: vi.fn(), persistGame: vi.fn(), removeGame: vi.fn(), listener: null as null | ((event: string, session: unknown) => void),
+  fetchGames: vi.fn(), persistGame: vi.fn(), removeGame: vi.fn(), startPlaying: vi.fn(), listener: null as null | ((event: string, session: unknown) => void),
 }))
 vi.mock('../src/supabase', () => ({ supabase: { auth: mocks.auth }, authRedirect: (recovery = false) => `http://localhost/${recovery ? '?flow=recovery' : ''}`, errorMessage: (e: Error) => e.message }))
-vi.mock('../src/cloudGames', () => ({ fetchGames: mocks.fetchGames, persistGame: mocks.persistGame, removeGame: mocks.removeGame }))
+vi.mock('../src/cloudGames', () => ({ fetchGames: mocks.fetchGames, persistGame: mocks.persistGame, removeGame: mocks.removeGame, startPlaying: mocks.startPlaying }))
 const user = { id: 'account-a', email: 'player@example.com' } as User
 const game = { id: 'game-a', title: 'Private game', platform: 'PC', status: 'Backlog', rating: null, notes: '' }
 const session = { user } as Session
@@ -135,5 +135,53 @@ describe('sessions and private collections', () => {
     await click('Remove game')
     await waitFor(() => expect(screen.queryByText('Private game')).toBeNull())
     expect(mocks.removeGame).toHaveBeenLastCalledWith('game-a', 'account-a')
+  })
+})
+
+describe('cloud library actions', () => {
+  it('saves every edited field and reloads the confirmed game', async () => {
+    mocks.persistGame.mockImplementation(async g => g)
+    const view = render(<App user={user} />)
+    await screen.findByText('Private game'); await click('Edit Private game')
+    await userEvent.clear(screen.getByLabelText(/Game title/))
+    await userEvent.type(screen.getByLabelText(/Game title/), 'Finished adventure')
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'Completed')
+    await userEvent.type(screen.getByLabelText(/Rating/), '9')
+    await userEvent.type(screen.getByLabelText('Notes'), 'Great ending')
+    await click('Save changes')
+    await screen.findByText('Finished adventure')
+    const saved = { ...game, title: 'Finished adventure', status: 'Completed', rating: 9, notes: 'Great ending' }
+    expect(mocks.persistGame).toHaveBeenCalledWith(saved, user.id, true)
+    mocks.fetchGames.mockResolvedValue([saved])
+    view.unmount(); render(<App user={user} />)
+    await screen.findByText('Finished adventure')
+    expect(screen.getByText('Great ending')).toBeTruthy()
+  })
+  it('keeps Start playing retryable after failure and waits for database confirmation', async () => {
+    let resolve!: (value: unknown) => void
+    mocks.startPlaying.mockRejectedValueOnce(new Error('Offline')).mockImplementationOnce(() => new Promise(r => { resolve = r }))
+    render(<App user={user} />); await screen.findByText('Private game')
+    await click('Pick my next game'); await click('Start playing')
+    expect(screen.getByRole('alert').textContent).toBe('Offline')
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    await click('Start playing')
+    expect(screen.getByRole('button', { name: 'Saving…' })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Roll again' })).toHaveProperty('disabled', true)
+    expect(mocks.startPlaying).toHaveBeenCalledTimes(2)
+    await act(async () => resolve({ ...game, status: 'Playing', notes: 'Latest cloud notes' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('Latest cloud notes')).toBeTruthy()
+    expect(mocks.startPlaying).toHaveBeenLastCalledWith(game.id, user.id)
+    expect(mocks.persistGame).not.toHaveBeenCalled()
+    await click('Pick my next game')
+    expect(screen.getByText('Your backlog is empty')).toBeTruthy()
+    expect(localStorage.getItem('backlog-quest:demo:v1')).toBeNull()
+  })
+  it('keeps Start playing in the local demo on the device', async () => {
+    render(<App />); await click('Pick my next game'); await click('Start playing')
+    expect(mocks.startPlaying).not.toHaveBeenCalled()
+    expect(mocks.persistGame).not.toHaveBeenCalled()
+    const stored = JSON.parse(localStorage.getItem('backlog-quest:demo:v1')!)
+    expect(stored.filter((g: { status: string }) => g.status === 'Playing')).toHaveLength(3)
   })
 })
