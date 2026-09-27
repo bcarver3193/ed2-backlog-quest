@@ -1,6 +1,10 @@
 -- Run as an administrator after the initial migration. Test rows are rolled back.
 begin;
 
+-- The owner exists only for this transaction; no real account is created.
+select set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+insert into auth.users(id) values (auth.uid());
+
 do $$
 declare
   game public.games%rowtype;
@@ -57,12 +61,11 @@ begin
   if not (select relrowsecurity from pg_class where oid = 'public.games'::regclass) then
     raise exception 'Row level security is disabled';
   end if;
-  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'games') then
-    raise exception 'Unexpected access policy in initial schema';
+  if (select count(*) from pg_policies where schemaname = 'public' and tablename = 'games') <> 4 then
+    raise exception 'Expected four ownership policies';
   end if;
-  if has_table_privilege('anon', 'public.games', 'SELECT,INSERT,UPDATE,DELETE')
-      or has_table_privilege('authenticated', 'public.games', 'SELECT,INSERT,UPDATE,DELETE') then
-    raise exception 'Unexpected browser access privileges';
+  if has_table_privilege('anon', 'public.games', 'SELECT,INSERT,UPDATE,DELETE') then
+    raise exception 'Unexpected anonymous privileges';
   end if;
 
   delete from public.games where id = original_id;
