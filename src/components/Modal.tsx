@@ -2,15 +2,15 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 
-export default function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+export default function Modal({ title, children, onClose, busy = false }: { busy?: boolean; title: string; children: ReactNode; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = ref.current!
     dialog.showModal()
     return () => dialog.close()
   }, [])
-  return <dialog ref={ref} onCancel={event => { event.preventDefault(); onClose() }} aria-labelledby="dialog-title">
-    <div className="dialog-heading"><h2 id="dialog-title">{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={20} /></button></div>
+  return <dialog ref={ref} onCancel={event => { event.preventDefault(); if (!busy) onClose() }} aria-labelledby="dialog-title">
+    <div className="dialog-heading"><h2 id="dialog-title">{title}</h2><button className="icon-button" disabled={busy} onClick={onClose} aria-label="Close dialog"><X size={20} /></button></div>
     {children}
   </dialog>
 }
