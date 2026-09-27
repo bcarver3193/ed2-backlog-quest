@@ -1,15 +1,43 @@
 # Backlog Quest
 
-A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The frontend, including sign-up, login, and logout, has not been built yet. See [database setup](supabase/README.md) for connection details and verification results.
+A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The first frontend is built with Vite, React, and TypeScript. It currently uses a local demo collection; account access and cloud storage are not connected yet. See [database setup](supabase/README.md) for connection details and verification results.
 
 The complete requirements are in [spec_doc.md](spec_doc.md).
 
-## Planned stack
+## Stack
 
-- React, Vite, JavaScript, HTML, and CSS for the responsive interface.
+- React, Vite, TypeScript, HTML, and CSS for the responsive interface.
 - Supabase for persistent cloud database storage.
 - Git and GitHub for version control.
 - Netlify for public deployment.
+
+## Run the frontend
+
+Use Node.js 22.12+ (or a newer supported version).
+
+```sh
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite. Use `npm run build` to type-check and produce the production build, `npm run typecheck` for TypeScript checks, and `npm run preview` to preview the build.
+
+### Initial frontend
+
+- Responsive library with status counts, title search, status filters, and optional alphabetical ordering.
+- Add/edit forms with title and integer rating validation; notes and flexible platforms.
+- Confirmed deletion and a random picker that draws from the entire backlog, regardless of active filters.
+- Six sample games on first visit. Changes persist in this browser under `backlog-quest:demo:v1`, including an intentionally empty collection.
+- Native modal dialogs provide keyboard focus containment and Escape dismissal.
+
+The interface explicitly labels local demo data. It does not use the existing environment credentials or connect to cloud storage. This demo is device-local and is not a private account collection. Sign-up, login, logout, password recovery, and owner-scoped cloud CRUD remain the next integration milestone.
+
+### Frontend structure
+
+- `src/App.tsx`: library layout, filtering, picker, and collection interactions.
+- `src/games.ts`: typed game model, sample data, and local demo storage.
+- `src/components/`: reusable dialog and game form.
+- `src/styles.css`: responsive styles and reduced-motion support.
 
 ## Required functionality
 

@@ -1,3 +1,5 @@
+> **Frontend stack update — September 27, 2026:** The frontend uses Vite, React, and TypeScript, superseding JavaScript-only references below.
+
 > **Scope update — September 27, 2026:** Supabase authentication is now required, superseding the no-login and authentication-out-of-scope statements below. Each signed-in account has a private collection. Every game has a required `user_id` referencing `auth.users(id)`. Row level security restricts all CRUD operations to that owner. The frontend must support registration, login, logout, and account recovery. Social or shared collections remain out of scope.
 
 ```markdown
