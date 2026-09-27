@@ -1,6 +1,6 @@
 # Backlog Quest
 
-A single-user web application for organizing a video game backlog. The project is currently at the specification stage; application code and service configuration have not yet been created.
+A single-user web application for organizing a video game backlog. The Supabase project and initial database schema are created and verified; application code and browser access policies are still pending. See [database setup](supabase/README.md) for connection details, verification results, and current access restrictions.
 
 The complete requirements are in [spec_doc.md](spec_doc.md).
 
