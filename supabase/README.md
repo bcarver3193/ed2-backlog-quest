@@ -16,7 +16,7 @@ Created and verified on September 27, 2026:
 - Two-account authorization tests passed: owner CRUD allowed; cross-account reads, updates, deletes, spoofed inserts, ownership transfers, missing identity, and anonymous access rejected. Synthetic users and rows were rolled back.
 - Security advisors returned no findings after adding the ownership policies.
 
-The local `.env.local` contains the project URL and publishable key and is ignored by Git. Authenticated browser CRUD is enabled by the database; the application and login interface still need to be built.
+The local `.env.local` contains the project URL and publishable key and is ignored by Git. Authenticated browser CRUD is enabled by the database; the application now connects through Supabase Auth and the owner-scoped Data API.
 
 ## Schema
 
@@ -37,7 +37,7 @@ Every game has a required, indexed `user_id` referencing `auth.users(id)`. Its d
 
 Row level security permits authenticated users to select, insert, update, and delete only their own rows. The update policy checks both existing and resulting ownership, preventing transfers to another account. Signed-out visitors have no table privileges. Administrators and trusted backend service-role requests retain privileged access.
 
-This replaces the original specification's no-login requirement. No real Auth accounts have been created. Next, build the frontend using the publishable key and Supabase Auth sessions, including registration, login, logout, confirmation, and password recovery. Configure the site URL and allowed redirect URLs when those URLs are known. Login and email-delivery flows have not been tested yet; current tests exercise database authorization with simulated authenticated identities.
+This replaces the original specification's no-login requirement. No real Auth accounts have been created. The frontend now supports registration, login, logout, confirmation resend, password recovery, password changes, and private cloud CRUD. Configure the site URL and allowed redirect URLs when those URLs are known. Frontend integration tests exercise account flows using mocked API responses; database tests exercise authorization with simulated authenticated identities. Real email delivery and email-link round trips still require an inbox and configured return URLs. See the root README for setup and the manual verification checklist.
 
 Never put a database password, secret key, or service-role key in a `VITE_` variable or frontend code. Vite variables are exposed to the browser. `.env.example` contains only placeholders for the project URL and publishable key.
 

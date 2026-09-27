@@ -1,6 +1,6 @@
 # Backlog Quest
 
-A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The first frontend is built with Vite, React, and TypeScript. It currently uses a local demo collection; account access and cloud storage are not connected yet. See [database setup](supabase/README.md) for connection details and verification results.
+A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The first frontend is built with Vite, React, and TypeScript. It supports Supabase accounts and private cloud libraries, plus a separate local demo. See [database setup](supabase/README.md) for connection details and verification results.
 
 The complete requirements are in [spec_doc.md](spec_doc.md).
 
@@ -22,7 +22,7 @@ npm run dev
 
 Open the local URL printed by Vite. Use `npm run build` to type-check and produce the production build, `npm run typecheck` for TypeScript checks, and `npm run preview` to preview the build.
 
-### Initial frontend
+### Frontend and accounts
 
 - Responsive library with status counts, title search, status filters, and optional alphabetical ordering.
 - Add/edit forms with title and integer rating validation; notes and flexible platforms.
@@ -30,10 +30,36 @@ Open the local URL printed by Vite. Use `npm run build` to type-check and produc
 - Six sample games on first visit. Changes persist in this browser under `backlog-quest:demo:v1`, including an intentionally empty collection.
 - Native modal dialogs provide keyboard focus containment and Escape dismissal.
 
-The interface explicitly labels local demo data. It does not use the existing environment credentials or connect to cloud storage. This demo is device-local and is not a private account collection. Sign-up, login, logout, password recovery, and owner-scoped cloud CRUD remain the next integration milestone.
+- Email/password sign-up and sign-in, confirmation resend, password recovery, password changes, and sign-out on this device.
+- Session restoration and token refresh through the Supabase client; account changes clear the previous library.
+- Private cloud add/edit/delete and random-picker status updates. Failed writes retain the form and show an error; failed reads offer a retry.
+- Demo data stays on this device and is never automatically imported into a private account.
+
+### Account configuration
+
+Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. The existing local environment is already configured. Use only a publishable key; never expose a secret or service-role key.
+
+In Supabase **Authentication → URL Configuration**, set the Site URL to the deployed app origin and allow the exact development/deployment return URLs. For the default Vite server these are `http://localhost:5173/` and `http://localhost:5173/?flow=recovery`. If using `127.0.0.1` or another port, add those exact URLs too. The app builds email return URLs from the current origin and path; password recovery adds `?flow=recovery`. The recovery marker survives a reload until the password is saved or the user signs out.
+
+Enable the email provider and email confirmation in Supabase. Use working SMTP for production delivery; provider limits and Supabase password requirements still apply. The UI requires at least 8 characters for new passwords. Missing frontend configuration shows an explanation and leaves the demo available.
+
+### Verification
+
+`npm test` runs account and collection integration tests with mocked Auth/Data API responses. They cover registration confirmation, sign-in errors, recovery, duplicate submissions, account switching, logout, delayed responses, demo isolation, and read/write failure recovery. `npm run build` checks TypeScript and builds production assets.
+
+The database authorization test in `supabase/tests/games_auth.sql` was rerun successfully, and security advisors returned no findings. The sign-in and sign-up screens were inspected in the local browser. Real email delivery and the full email-link round trip have not been verified; finish these checks after configuring the deployed return URLs:
+
+1. Register with an inbox you control, confirm the email, and sign in.
+2. Add/edit a game, refresh, and confirm it persists. Sign out and sign back in.
+3. Request password recovery, open the email link, set a new password, then sign in with it.
+4. Check expired links and resend confirmation. Verify a second account has an independent library.
+5. Test the deployed app on desktop and mobile.
 
 ### Frontend structure
 
+- `src/AccountApp.tsx`: session lifecycle and recovery routing.
+- `src/components/AuthForm.tsx`: account forms and validation.
+- `src/supabase.ts` and `src/cloudGames.ts`: browser client and owner-scoped cloud operations.
 - `src/App.tsx`: library layout, filtering, picker, and collection interactions.
 - `src/games.ts`: typed game model, sample data, and local demo storage.
 - `src/components/`: reusable dialog and game form.
@@ -57,7 +83,7 @@ Per the September 27 scope update, Supabase authentication is required. Each acc
 
 ## Decisions to resolve during implementation
 
-- Login interface: implement Supabase Auth sign-up, login, logout, email confirmation, and password recovery in the frontend; configure redirect URLs when development and deployment URLs are known.
+- Deployment: configure Supabase email delivery and allow the final development/deployment return URLs.
 - Ratings: the spec primarily intends ratings for completed games but does not require restricting them to that status.
 - Data behavior: define duplicate-title handling, default ordering, timestamp maintenance, and field length limits. The spec does not prescribe these details.
 
