@@ -4,6 +4,10 @@ Backlog Quest is a completed, deployed web application for organizing your video
 
 **Live app:** [backlog-quest.netlify.app](https://backlog-quest.netlify.app/)
 
+## Demo video
+
+[Demo Video](https://youtu.be/IclGR0k8RNI)
+
 ## Features
 
 - **Manage your library:** Add, view, edit, and delete games, with confirmation before deletion.
@@ -129,8 +133,3 @@ tests/                 Automated application tests
 
 The [project specification](spec_doc.md) records the original requirements. The implemented app includes private accounts and alphabetical sorting in addition to the core backlog-management features.
 
-## Demo video
-
-Demo video link: **To be added.**
-
-The [live app](https://backlog-quest.netlify.app/) is available to explore in the meantime.
