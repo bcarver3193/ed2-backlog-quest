@@ -12,9 +12,11 @@ Created and verified on September 27, 2026:
 - Initial migration applied: `20260927043418_create_games`.
 - CRUD, validation, timestamp, and access-grant smoke checks passed. Test data was rolled back; the table is empty.
 - An unauthenticated Data API read using the publishable key returned HTTP 401, permission denied, as intended.
-- Security advisors returned only the expected informational notice about [RLS without policies](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+- Auth ownership migration applied: `20260927044409_protect_games_with_auth`.
+- Two-account authorization tests passed: owner CRUD allowed; cross-account reads, updates, deletes, spoofed inserts, ownership transfers, missing identity, and anonymous access rejected. Synthetic users and rows were rolled back.
+- Security advisors returned no findings after adding the ownership policies.
 
-The local `.env.local` contains the project URL and publishable key and is ignored by Git. Browser CRUD remains pending the access decision below.
+The local `.env.local` contains the project URL and publishable key and is ignored by Git. Authenticated browser CRUD is enabled by the database; the application and login interface still need to be built.
 
 ## Schema
 
@@ -29,18 +31,20 @@ The local `.env.local` contains the project URL and publishable key and is ignor
 
 The initial migration must run once on a project without a `public.games` table. Inspect an existing project before applying it; do not overwrite an existing table. Future changes belong in new migrations.
 
-## Access decision
+## Supabase Auth access model
 
-Row level security is enabled. There are no browser access policies, and `anon` and `authenticated` have no table privileges. Administrators can manage games through the dashboard, and the backend `service_role` has CRUD access. This is a schema foundation; browser CRUD is not enabled yet.
+Every game has a required, indexed `user_id` referencing `auth.users(id)`. Its default is `auth.uid()`, so signed-in clients can omit ownership when inserting. Deleting an Auth user cascades to their games. The ownership migration was applied to an empty table; a populated database would require an explicit ownership backfill first.
 
-The specification combines public deployment with no login. Before connecting the frontend, choose whether this is an intentionally shared public demo collection or a protected personal collection. A shared public demo permits visitors to change each other's data; a protected collection requires an agreed access mechanism. Do not disable row level security to work around this decision.
+Row level security permits authenticated users to select, insert, update, and delete only their own rows. The update policy checks both existing and resulting ownership, preventing transfers to another account. Signed-out visitors have no table privileges. Administrators and trusted backend service-role requests retain privileged access.
+
+This replaces the original specification's no-login requirement. No real Auth accounts have been created. Next, build the frontend using the publishable key and Supabase Auth sessions, including registration, login, logout, confirmation, and password recovery. Configure the site URL and allowed redirect URLs when those URLs are known. Login and email-delivery flows have not been tested yet; current tests exercise database authorization with simulated authenticated identities.
 
 Never put a database password, secret key, or service-role key in a `VITE_` variable or frontend code. Vite variables are exposed to the browser. `.env.example` contains only placeholders for the project URL and publishable key.
 
 ## Verification after applying
 
-1. Run `tests/games_smoke.sql` as the database administrator. It checks basic CRUD, constraints, timestamps, and initial access settings inside a transaction and rolls back its test data.
+1. Run `tests/games_smoke.sql` as the database administrator. It checks basic CRUD, constraints, timestamps, and access settings inside a transaction and rolls back its test data.
 2. Verify unauthenticated requests through the project's Data API cannot read or modify the table.
-3. Once an access model is selected, add its grants/policies in a separate migration and test permitted and rejected requests before integrating the frontend.
+3. Run `tests/games_auth.sql` as the administrator to verify real Postgres role enforcement with two simulated Auth identities, including positive and negative cases. All test changes are rolled back.
 
 Reference: [Supabase row level security](https://supabase.com/docs/guides/database/postgres/row-level-security).

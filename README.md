@@ -1,6 +1,6 @@
 # Backlog Quest
 
-A single-user web application for organizing a video game backlog. The Supabase project and initial database schema are created and verified; application code and browser access policies are still pending. See [database setup](supabase/README.md) for connection details, verification results, and current access restrictions.
+A personal web application for organizing a video game backlog. The Supabase database and Auth ownership policies are created and verified. The frontend, including sign-up, login, and logout, has not been built yet. See [database setup](supabase/README.md) for connection details and verification results.
 
 The complete requirements are in [spec_doc.md](spec_doc.md).
 
@@ -25,11 +25,11 @@ The `games` table will contain `id` (UUID), `title`, `platform`, `status`, `rati
 
 ## Scope boundaries
 
-The initial release has no registration or login. Platform filtering, cover images, external game APIs, sorting, statistics, themes, authentication, and drag-and-drop are optional enhancements after the core application works reliably. Social features, store features, account integrations, achievement tracking, and complex recommendations are out of scope.
+Per the September 27 scope update, Supabase authentication is required. Each account has a private collection; users cannot view or change another account's games. Platform filtering, cover images, external game APIs, sorting, statistics, themes, and drag-and-drop remain optional. Social features, store features, account integrations, achievement tracking, and complex recommendations are out of scope.
 
 ## Decisions to resolve during implementation
 
-- Database access: public deployment without login requires an explicit access policy. A shared collection accessible to anonymous visitors is not a private personal collection; decide how writes will be controlled before deployment.
+- Login interface: implement Supabase Auth sign-up, login, logout, email confirmation, and password recovery in the frontend; configure redirect URLs when development and deployment URLs are known.
 - Ratings: the spec primarily intends ratings for completed games but does not require restricting them to that status.
 - Data behavior: define duplicate-title handling, default ordering, timestamp maintenance, and field length limits. The spec does not prescribe these details.
 
