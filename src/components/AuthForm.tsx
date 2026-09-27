@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { authRedirect, errorMessage, supabase } from '../supabase'
 
-type Mode = 'signin' | 'signup'
-const titles: Record<Mode, string> = { signin: 'Welcome back.', signup: 'Your adventure starts here.', }
+type Mode = 'signin' | 'signup' | 'resend'
+const titles: Record<Mode, string> = { signin: 'Welcome back.', signup: 'Your adventure starts here.', resend: 'Confirm your email.', }
 
 export default function AuthForm({ initialError = '', onBusyChange }: { initialError?: string; onBusyChange?: (busy: boolean) => void }) {
   const [mode, setMode] = useState<Mode>('signin')
@@ -34,9 +34,13 @@ export default function AuthForm({ initialError = '', onBusyChange }: { initialE
         const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: authRedirect() } })
         if (error) throw error
         if (!data.session) {
-          setPassword(''); setConfirmation('')
-          setNotice('Check your inbox for a confirmation link. If you already have an account, sign in.')
+          setMode('resend'); setPassword(''); setConfirmation('')
+          setNotice('Check your inbox for a confirmation link. If you already have an account, sign in or reset your password.')
         }
+      } else if (mode === 'resend') {
+        const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: authRedirect() } })
+        if (error) throw error
+        setNotice('If your account needs confirmation, a new link is on its way. Check your inbox and spam folder.')
 
       }
     } catch (error) { setError(errorMessage(error)) }
@@ -54,11 +58,11 @@ export default function AuthForm({ initialError = '', onBusyChange }: { initialE
         {newPassword && <label>Confirm password<input name="confirmation" type="password" autoComplete="new-password" required minLength={8} value={confirmation} onChange={e => setConfirmation(e.target.value)} /></label>}
         {error && <p role="alert" className="error">{error}</p>}
         {notice && <p role="status" className="notice">{notice}</p>}
-        <button className="primary auth-submit" type="submit">{busy ? 'Please wait…' : { signin: 'Sign in', signup: 'Create account' }[mode]}</button>
+        <button className="primary auth-submit" type="submit">{busy ? 'Please wait…' : { signin: 'Sign in', signup: 'Create account', resend: 'Resend confirmation' }[mode]}</button>
       </fieldset>
     </form>
     <div className="auth-links">
-      {mode === 'signin' ? <><button disabled={busy} onClick={() => changeMode('signup')}>New here? Create an account</button></> : <button disabled={busy} onClick={() => changeMode('signin')}>Back to sign in</button>}
+      {mode === 'signin' ? <><button disabled={busy} onClick={() => changeMode('signup')}>New here? Create an account</button><button disabled={busy} onClick={() => changeMode('resend')}>Resend confirmation email</button></> : <button disabled={busy} onClick={() => changeMode('signin')}>Back to sign in</button>}
     </div>
   </section>
 }
